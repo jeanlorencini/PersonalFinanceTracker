@@ -491,6 +491,17 @@ document.addEventListener('click', function(e) {
     if (e.target === deleteModal) {
         closeDeleteModal();
     }
+    
+    // Handle bulk actions modals
+    const bulkCategorizeModal = document.getElementById('bulkCategorizeModal');
+    if (e.target === bulkCategorizeModal) {
+        closeBulkCategorizeModal();
+    }
+    
+    const bulkDeleteModal = document.getElementById('bulkDeleteModal');
+    if (e.target === bulkDeleteModal) {
+        closeBulkDeleteModal();
+    }
 });
 </script>
 {% endblock %}
