@@ -118,7 +118,7 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <input type="checkbox" id="selectAll" onchange="selectAllTransactions()" 
+                                    <input type="checkbox" id="selectAll" 
                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                                 </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -146,7 +146,6 @@
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         <input type="checkbox" name="transaction_ids" value="{{ transaction.id }}" 
-                                               onchange="updateBulkActionsVisibility()" 
                                                class="transaction-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -502,6 +501,24 @@ document.addEventListener('click', function(e) {
     if (e.target === bulkDeleteModal) {
         closeBulkDeleteModal();
     }
+});
+
+// Initialize bulk actions on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners to all transaction checkboxes
+    const transactionCheckboxes = document.querySelectorAll('.transaction-checkbox');
+    transactionCheckboxes.forEach(function(checkbox) {
+        checkbox.addEventListener('change', updateBulkActionsVisibility);
+    });
+    
+    // Add event listener to select all checkbox
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', selectAllTransactions);
+    }
+    
+    // Initial call to set visibility
+    updateBulkActionsVisibility();
 });
 </script>
 {% endblock %}
