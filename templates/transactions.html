@@ -146,7 +146,7 @@
                                         {% endif %}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {% if transaction.type == 'despesa' %}
+                                        {% if transaction.type in ['despesa', 'receita'] %}
                                             {% if transaction.category %}
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                                     {{ transaction.category.name }}
@@ -159,13 +159,20 @@
                                         {% endif %}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        {% if transaction.type == 'despesa' and not transaction.category %}
-                                            <button onclick="openCategorizeModal({{ transaction.id }}, '{{ transaction.description }}')" 
-                                                    class="text-blue-600 hover:text-blue-900">
-                                                <i class="fas fa-tag mr-1"></i>
-                                                Categorizar
+                                        <div class="flex items-center space-x-2">
+                                            {% if transaction.type in ['despesa', 'receita'] and not transaction.category %}
+                                                <button onclick="openCategorizeModal({{ transaction.id }}, '{{ transaction.description }}')" 
+                                                        class="text-blue-600 hover:text-blue-900">
+                                                    <i class="fas fa-tag mr-1"></i>
+                                                    Categorizar
+                                                </button>
+                                            {% endif %}
+                                            <button onclick="confirmDeleteTransaction({{ transaction.id }}, '{{ transaction.description }}')" 
+                                                    class="text-red-600 hover:text-red-900" 
+                                                    title="Excluir transação">
+                                                <i class="fas fa-trash"></i>
                                             </button>
-                                        {% endif %}
+                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}

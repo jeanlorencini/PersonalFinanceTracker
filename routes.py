@@ -9,59 +9,89 @@ import os
 
 @app.route('/')
 def dashboard():
-    """Dashboard with financial overview"""
-    current_month = datetime.now().month
-    current_year = datetime.now().year
+    """Dashboard with financial overview and filters"""
+    # Get filter parameters
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    transaction_type = request.args.get('type', 'all')
+    category_id = request.args.get('category_id')
     
-    # Get monthly totals excluding transfers
-    monthly_income = db.session.query(func.sum(Transaction.amount)).filter(
-        and_(
-            Transaction.type == 'receita',
-            extract('month', Transaction.date) == current_month,
-            extract('year', Transaction.date) == current_year
-        )
-    ).scalar() or 0
+    # Default to current month if no filters
+    if not date_from and not date_to:
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+        
+        # Set default date range to current month
+        from datetime import date
+        date_from = date(current_year, current_month, 1).isoformat()
+        # Last day of current month
+        if current_month == 12:
+            date_to = date(current_year + 1, 1, 1) - date.resolution
+        else:
+            date_to = date(current_year, current_month + 1, 1) - date.resolution
+        date_to = date_to.isoformat()
     
-    monthly_expenses = db.session.query(func.sum(Transaction.amount)).filter(
-        and_(
-            Transaction.type == 'despesa',
-            extract('month', Transaction.date) == current_month,
-            extract('year', Transaction.date) == current_year
-        )
-    ).scalar() or 0
+    # Build date filter
+    date_filter = []
+    if date_from:
+        date_filter.append(Transaction.date >= datetime.strptime(date_from, '%Y-%m-%d').date())
+    if date_to:
+        date_filter.append(Transaction.date <= datetime.strptime(date_to, '%Y-%m-%d').date())
     
-    # Investment transfers for the month
-    monthly_investments = db.session.query(func.sum(Transaction.amount)).filter(
-        and_(
-            Transaction.type == 'transferencia',
-            Transaction.amount < 0,  # Outgoing transfers (investments)
-            extract('month', Transaction.date) == current_month,
-            extract('year', Transaction.date) == current_year
-        )
-    ).scalar() or 0
+    # Income calculation
+    income_query = db.session.query(func.sum(Transaction.amount)).filter(
+        Transaction.type == 'receita',
+        *date_filter
+    )
+    if category_id and transaction_type in ['receita', 'all']:
+        income_query = income_query.filter(Transaction.category_id == category_id)
+    monthly_income = income_query.scalar() or 0
+    
+    # Expenses calculation
+    expenses_query = db.session.query(func.sum(Transaction.amount)).filter(
+        Transaction.type == 'despesa',
+        *date_filter
+    )
+    if category_id and transaction_type in ['despesa', 'all']:
+        expenses_query = expenses_query.filter(Transaction.category_id == category_id)
+    monthly_expenses = expenses_query.scalar() or 0
+    
+    # Investment transfers calculation
+    investments_query = db.session.query(func.sum(Transaction.amount)).filter(
+        Transaction.type == 'transferencia',
+        Transaction.amount < 0,  # Outgoing transfers (investments)
+        *date_filter
+    )
+    monthly_investments = investments_query.scalar() or 0
     
     # Account balance (income - expenses, excluding transfers)
     account_balance = monthly_income - abs(monthly_expenses)
     
     # Expenses by category for chart
-    expenses_by_category = db.session.query(
+    expenses_by_category_query = db.session.query(
         Category.name,
         func.sum(Transaction.amount).label('total')
     ).join(Transaction).filter(
-        and_(
-            Transaction.type == 'despesa',
-            extract('month', Transaction.date) == current_month,
-            extract('year', Transaction.date) == current_year
-        )
-    ).group_by(Category.name).all()
+        Transaction.type == 'despesa',
+        *date_filter
+    )
+    if category_id:
+        expenses_by_category_query = expenses_by_category_query.filter(Transaction.category_id == category_id)
+    expenses_by_category = expenses_by_category_query.group_by(Category.name).all()
     
-    # Recent transactions (last 10)
-    recent_transactions = Transaction.query.order_by(
+    # Recent transactions with filters
+    transactions_query = Transaction.query.filter(*date_filter)
+    if transaction_type != 'all':
+        transactions_query = transactions_query.filter(Transaction.type == transaction_type)
+    if category_id:
+        transactions_query = transactions_query.filter(Transaction.category_id == category_id)
+    
+    recent_transactions = transactions_query.order_by(
         Transaction.date.desc(), 
         Transaction.created_at.desc()
     ).limit(10).all()
     
-    # Get categories for manual transaction form
+    # Get categories for manual transaction form and filters
     categories = Category.query.order_by(Category.name).all()
     
     return render_template('dashboard.html',
@@ -71,7 +101,13 @@ def dashboard():
                          monthly_investments=abs(monthly_investments),
                          expenses_by_category=expenses_by_category,
                          recent_transactions=recent_transactions,
-                         categories=categories)
+                         categories=categories,
+                         filters={
+                             'date_from': date_from,
+                             'date_to': date_to,
+                             'type': transaction_type,
+                             'category_id': category_id
+                         })
 
 @app.route('/transactions')
 def transactions():
@@ -139,8 +175,9 @@ def upload_csv():
         # Save transactions to database
         imported_count = 0
         duplicate_count = 0
+        batch_size = 50  # Process in smaller batches
         
-        for transaction_data in transactions_data:
+        for i, transaction_data in enumerate(transactions_data):
             try:
                 # Classify transaction type
                 transaction_type = classify_transaction_type(transaction_data['description'])
@@ -153,27 +190,66 @@ def upload_csv():
                 )
                 
                 db.session.add(transaction)
-                db.session.flush()  # Flush to detect duplicates without committing
                 imported_count += 1
                 
-            except IntegrityError:
-                # Duplicate transaction detected
-                db.session.rollback()
-                duplicate_count += 1
-                continue
+                # Commit in batches
+                if (i + 1) % batch_size == 0:
+                    try:
+                        db.session.commit()
+                    except IntegrityError:
+                        db.session.rollback()
+                        # Handle duplicates in batch - reprocess individually
+                        for j in range(max(0, i - batch_size + 1), i + 1):
+                            try:
+                                td = transactions_data[j]
+                                tt = classify_transaction_type(td['description'])
+                                t = Transaction(
+                                    date=td['date'],
+                                    description=td['description'],
+                                    amount=td['amount'],
+                                    type=tt
+                                )
+                                db.session.add(t)
+                                db.session.commit()
+                            except IntegrityError:
+                                db.session.rollback()
+                                duplicate_count += 1
+                                imported_count -= 1
+                    except Exception as e:
+                        db.session.rollback()
+                        app.logger.error(f"Error in batch commit: {e}")
+                        continue
+                
             except Exception as e:
-                db.session.rollback()
-                app.logger.error(f"Error importing transaction: {e}")
+                app.logger.error(f"Error processing transaction: {e}")
                 continue
         
-        # Commit all transactions at once
+        # Commit remaining transactions
         try:
             db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            # Process remaining individually
+            remaining_start = (len(transactions_data) // batch_size) * batch_size
+            for j in range(remaining_start, len(transactions_data)):
+                try:
+                    td = transactions_data[j]
+                    tt = classify_transaction_type(td['description'])
+                    t = Transaction(
+                        date=td['date'],
+                        description=td['description'],
+                        amount=td['amount'],
+                        type=tt
+                    )
+                    db.session.add(t)
+                    db.session.commit()
+                except IntegrityError:
+                    db.session.rollback()
+                    duplicate_count += 1
+                    imported_count -= 1
         except Exception as e:
             db.session.rollback()
-            app.logger.error(f"Error committing transactions: {e}")
-            flash('Erro ao salvar as transações no banco de dados.', 'error')
-            return redirect(url_for('import_page'))
+            app.logger.error(f"Error in final commit: {e}")
         
         # Provide feedback
         if imported_count > 0:
@@ -201,9 +277,9 @@ def categorize_transaction():
     
     transaction = Transaction.query.get_or_404(transaction_id)
     
-    # Only allow categorization of expenses
-    if transaction.type != 'despesa':
-        flash('Apenas despesas podem ser categorizadas', 'error')
+    # Allow categorization of expenses and income, but not transfers
+    if transaction.type == 'transferencia':
+        flash('Transferências não podem ser categorizadas', 'error')
         return redirect(url_for('transactions'))
     
     try:
@@ -279,6 +355,24 @@ def add_manual_transaction():
         flash('Erro ao adicionar transação.', 'error')
     
     return redirect(url_for('dashboard'))
+
+@app.route('/delete_transaction/<int:transaction_id>', methods=['POST'])
+def delete_transaction(transaction_id):
+    """Delete a transaction"""
+    try:
+        transaction = Transaction.query.get_or_404(transaction_id)
+        
+        db.session.delete(transaction)
+        db.session.commit()
+        
+        flash('Transação excluída com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error deleting transaction: {e}")
+        flash('Erro ao excluir transação.', 'error')
+    
+    return redirect(url_for('transactions'))
 
 @app.route('/api/dashboard_data')
 def api_dashboard_data():

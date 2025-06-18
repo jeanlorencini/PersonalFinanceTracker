@@ -20,6 +20,100 @@
         </div>
     </div>
 
+    <!-- Dashboard Filters -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Filtros do Dashboard</h3>
+            
+            <!-- Quick Filter Buttons -->
+            <div class="mb-4">
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button onclick="setQuickFilter('this_month')" 
+                            class="quick-filter-btn inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Este Mês
+                    </button>
+                    <button onclick="setQuickFilter('last_30_days')" 
+                            class="quick-filter-btn inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Últimos 30 Dias
+                    </button>
+                    <button onclick="setQuickFilter('last_3_months')" 
+                            class="quick-filter-btn inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Últimos 3 Meses
+                    </button>
+                    <button onclick="setQuickFilter('this_year')" 
+                            class="quick-filter-btn inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Este Ano
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Detailed Filters -->
+            <form method="GET" action="{{ url_for('dashboard') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <!-- Date From -->
+                <div>
+                    <label for="date_from" class="block text-sm font-medium text-gray-700">Data Inicial</label>
+                    <input type="date" 
+                           name="date_from" 
+                           id="date_from" 
+                           value="{{ filters.date_from or '' }}"
+                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- Date To -->
+                <div>
+                    <label for="date_to" class="block text-sm font-medium text-gray-700">Data Final</label>
+                    <input type="date" 
+                           name="date_to" 
+                           id="date_to" 
+                           value="{{ filters.date_to or '' }}"
+                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- Type Filter -->
+                <div>
+                    <label for="type" class="block text-sm font-medium text-gray-700">Tipo</label>
+                    <select name="type" 
+                            id="type" 
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="all" {{ 'selected' if filters.type == 'all' else '' }}>Todos</option>
+                        <option value="receita" {{ 'selected' if filters.type == 'receita' else '' }}>Receita</option>
+                        <option value="despesa" {{ 'selected' if filters.type == 'despesa' else '' }}>Despesa</option>
+                        <option value="transferencia" {{ 'selected' if filters.type == 'transferencia' else '' }}>Transferência</option>
+                    </select>
+                </div>
+
+                <!-- Category Filter -->
+                <div>
+                    <label for="category_id" class="block text-sm font-medium text-gray-700">Categoria</label>
+                    <select name="category_id" 
+                            id="category_id" 
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="">Todas as Categorias</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {{ 'selected' if filters.category_id == category.id|string else '' }}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter Buttons -->
+                <div class="flex items-end space-x-2">
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-search mr-2"></i>
+                        Filtrar
+                    </button>
+                    <a href="{{ url_for('dashboard') }}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-times mr-2"></i>
+                        Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- Income Card -->
@@ -300,6 +394,43 @@ document.addEventListener('click', function(e) {
         closeManualTransactionModal();
     }
 });
+
+// Quick filter functions
+function setQuickFilter(period) {
+    const today = new Date();
+    let startDate, endDate;
+    
+    switch(period) {
+        case 'this_month':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            break;
+        case 'last_30_days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 30);
+            endDate = today;
+            break;
+        case 'last_3_months':
+            startDate = new Date(today);
+            startDate.setMonth(today.getMonth() - 3);
+            endDate = today;
+            break;
+        case 'this_year':
+            startDate = new Date(today.getFullYear(), 0, 1);
+            endDate = today;
+            break;
+    }
+    
+    // Format dates to YYYY-MM-DD
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    
+    // Set the date inputs
+    document.getElementById('date_from').value = formatDate(startDate);
+    document.getElementById('date_to').value = formatDate(endDate);
+    
+    // Submit the form
+    document.querySelector('form[action*="dashboard"]').submit();
+}
 
 // Initialize expenses chart if data exists
 {% if expenses_by_category %}

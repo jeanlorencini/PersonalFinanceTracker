@@ -1,0 +1,30 @@
+Hello!
+
+Thank you so much for the latest updates. The corrected currency formatting and the manual transaction button on the dashboard are great improvements!
+
+I've tested the new version and have some detailed feedback and new requests to ensure the app fully meets its core objective: providing a quick and intuitive visual overview of my finances.
+
+Here are the key points for the next iteration:
+
+1. Dashboard Filters (High Priority)
+I noticed the filters were added to the /transactions page. While this is useful, my main goal is to have them directly on the Dashboard.
+
+Reasoning: The primary purpose is to dynamically update the charts and summary cards (like "Despesas por Categoria") based on the selected filters. This visual feedback is crucial for understanding my financial situation at a glance, which is the main goal of the app. The current implementation doesn't allow for this dynamic visual analysis.
+Request:
+Could you please move the filter functionality to the Dashboard page?
+Could you also implement the "Quick Filters" we discussed (e.g., buttons for "Last 30 days," "This Month," etc.) to speed up the process?
+2. CSV Re-import Error and Logic
+When I tried to re-import the same bank statement to test the new automatic categorization, I received an "Internal Server Error."
+
+Desired Behavior: When the same file is imported again, the system should ideally replace the existing data with the new data from the spreadsheet. This would allow me to properly test if the automatic categorization improvements are working as expected on a clean slate.
+3. Ongoing Categorization Issues
+There are still several transactions that I cannot categorize manually because they are locked as "N/A". This seems to affect all Receita (Income) entries.
+
+Problem: While "N/A" makes sense for Transferência (Transfers), it's essential to be able to categorize income sources (e.g., "Salary," "Freelance," etc.).
+Request: Could you please ensure that all Despesa (Expense) and Receita (Income) transactions can have their categories edited manually?
+4. New Feature: Delete Transaction
+I would like to request a new feature on the /transactions page: an option to delete an individual transaction.
+
+Implementation: A red trash can icon next to each transaction would fit the app's modern and simple design.
+User Experience: It's crucial that this feature includes a confirmation step (e.g., a pop-up modal asking "Are you sure you want to delete this transaction?") to prevent accidental deletions.
+Thank you again for your excellent work. The main focus for the next update would be the interactive Dashboard filters and fixing the import/categorization logic. I'm looking forward to the next version!
