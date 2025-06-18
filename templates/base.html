@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Controle Financeiro{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-chart-line text-blue-600 mr-2"></i>
+                            Controle Financeiro
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('dashboard') }}" 
+                       class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt mr-1"></i>
+                        Dashboard
+                    </a>
+                    <a href="{{ url_for('transactions') }}" 
+                       class="nav-link {% if request.endpoint == 'transactions' %}active{% endif %}">
+                        <i class="fas fa-list mr-1"></i>
+                        Transações
+                    </a>
+                    <a href="{{ url_for('import_page') }}" 
+                       class="nav-link {% if request.endpoint == 'import_page' %}active{% endif %}">
+                        <i class="fas fa-upload mr-1"></i>
+                        Importar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="max-w-7xl mx-auto px-4 py-4">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} mb-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                {% if category == 'success' %}
+                                    <i class="fas fa-check-circle text-green-400"></i>
+                                {% elif category == 'error' %}
+                                    <i class="fas fa-exclamation-circle text-red-400"></i>
+                                {% elif category == 'info' %}
+                                    <i class="fas fa-info-circle text-blue-400"></i>
+                                {% else %}
+                                    <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                                {% endif %}
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm">{{ message }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/transactions.js') }}"></script>
+</body>
+</html>

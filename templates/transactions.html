@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Transações - Controle Financeiro{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-gray-900">Gerenciar Transações</h2>
+        <a href="{{ url_for('import_page') }}" 
+           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <i class="fas fa-upload mr-2"></i>
+            Importar CSV
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Filtros</h3>
+            <form method="GET" action="{{ url_for('transactions') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <!-- Date From -->
+                <div>
+                    <label for="date_from" class="block text-sm font-medium text-gray-700">Data Inicial</label>
+                    <input type="date" 
+                           name="date_from" 
+                           id="date_from" 
+                           value="{{ filters.date_from or '' }}"
+                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- Date To -->
+                <div>
+                    <label for="date_to" class="block text-sm font-medium text-gray-700">Data Final</label>
+                    <input type="date" 
+                           name="date_to" 
+                           id="date_to" 
+                           value="{{ filters.date_to or '' }}"
+                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- Type Filter -->
+                <div>
+                    <label for="type" class="block text-sm font-medium text-gray-700">Tipo</label>
+                    <select name="type" 
+                            id="type" 
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="all" {{ 'selected' if filters.type == 'all' else '' }}>Todos</option>
+                        <option value="receita" {{ 'selected' if filters.type == 'receita' else '' }}>Receita</option>
+                        <option value="despesa" {{ 'selected' if filters.type == 'despesa' else '' }}>Despesa</option>
+                        <option value="transferencia" {{ 'selected' if filters.type == 'transferencia' else '' }}>Transferência</option>
+                    </select>
+                </div>
+
+                <!-- Category Filter -->
+                <div>
+                    <label for="category_id" class="block text-sm font-medium text-gray-700">Categoria</label>
+                    <select name="category_id" 
+                            id="category_id" 
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="">Todas as Categorias</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {{ 'selected' if filters.category_id == category.id|string else '' }}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter Buttons -->
+                <div class="flex items-end space-x-2">
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-search mr-2"></i>
+                        Filtrar
+                    </button>
+                    <a href="{{ url_for('transactions') }}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-times mr-2"></i>
+                        Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                Transações ({{ transactions|length }} encontradas)
+            </h3>
+            
+            {% if transactions %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Data
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Descrição
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Valor
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Tipo
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Categoria
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Ações
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for transaction in transactions %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ transaction.date.strftime('%d/%m/%Y') }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                        <div class="max-w-xs truncate">
+                                            {{ transaction.description }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ 'text-green-600' if transaction.amount > 0 else 'text-red-600' }}">
+                                        {{ '+' if transaction.amount > 0 else '' }}R$ {{ "%.2f"|format(transaction.amount) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {% if transaction.type == 'receita' %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                Receita
+                                            </span>
+                                        {% elif transaction.type == 'despesa' %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                Despesa
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                Transferência
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {% if transaction.type == 'despesa' %}
+                                            {% if transaction.category %}
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                    {{ transaction.category.name }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-yellow-600 font-medium">Não categorizada</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-gray-400">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        {% if transaction.type == 'despesa' and not transaction.category %}
+                                            <button onclick="openCategorizeModal({{ transaction.id }}, '{{ transaction.description }}')" 
+                                                    class="text-blue-600 hover:text-blue-900">
+                                                <i class="fas fa-tag mr-1"></i>
+                                                Categorizar
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-receipt text-4xl text-gray-300 mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nenhuma transação encontrada</h3>
+                    <p class="text-gray-500 mb-4">Tente ajustar os filtros ou importe um extrato bancário.</p>
+                    <a href="{{ url_for('import_page') }}" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        <i class="fas fa-upload mr-2"></i>
+                        Importar Extrato
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Categorization Modal -->
+<div id="categorizeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Categorizar Transação</h3>
+            <p id="transactionDescription" class="text-sm text-gray-600 mb-4"></p>
+            
+            <form method="POST" action="{{ url_for('categorize_transaction') }}">
+                <input type="hidden" id="transactionId" name="transaction_id">
+                
+                <div class="mb-4">
+                    <label for="category_select" class="block text-sm font-medium text-gray-700">Escolha uma categoria:</label>
+                    <select id="category_select" name="category_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="">Selecionar categoria...</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="new_category" class="block text-sm font-medium text-gray-700">Ou criar nova categoria:</label>
+                    <input type="text" 
+                           id="new_category" 
+                           name="new_category" 
+                           placeholder="Nome da nova categoria"
+                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" 
+                            onclick="closeCategorizeModal()" 
+                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        Categorizar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
