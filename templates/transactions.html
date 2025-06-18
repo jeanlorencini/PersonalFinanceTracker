@@ -128,7 +128,7 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ 'text-green-600' if transaction.amount > 0 else 'text-red-600' }}">
-                                        {{ '+' if transaction.amount > 0 else '' }}R$ {{ "%.2f"|format(transaction.amount) }}
+                                        {{ '+' if transaction.amount > 0 else '' }}R$ {{ "{:,.2f}".format(transaction.amount|abs).replace(',', 'X').replace('.', ',').replace('X', '.') }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         {% if transaction.type == 'receita' %}

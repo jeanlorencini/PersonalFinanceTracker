@@ -95,3 +95,4 @@ Preferred communication style: Simple, everyday language.
 Changelog:
 - June 18, 2025. Initial setup
 - June 18, 2025. Updated CSV import to handle specific bank statement format with header rows, proper encoding detection, and improved transaction classification patterns
+- June 18, 2025. Fixed currency formatting to use Brazilian Real format (R$ 1.480,00), added manual transaction entry feature to dashboard, improved CSV import performance with bulk commits, and enhanced transaction classification for PIX and B3 operations

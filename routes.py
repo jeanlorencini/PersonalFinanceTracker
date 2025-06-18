@@ -61,13 +61,17 @@ def dashboard():
         Transaction.created_at.desc()
     ).limit(10).all()
     
+    # Get categories for manual transaction form
+    categories = Category.query.order_by(Category.name).all()
+    
     return render_template('dashboard.html',
                          monthly_income=monthly_income,
                          monthly_expenses=abs(monthly_expenses),
                          account_balance=account_balance,
                          monthly_investments=abs(monthly_investments),
                          expenses_by_category=expenses_by_category,
-                         recent_transactions=recent_transactions)
+                         recent_transactions=recent_transactions,
+                         categories=categories)
 
 @app.route('/transactions')
 def transactions():
@@ -224,6 +228,57 @@ def categorize_transaction():
         flash('Erro ao categorizar transação', 'error')
     
     return redirect(url_for('transactions'))
+
+@app.route('/add_manual_transaction', methods=['POST'])
+def add_manual_transaction():
+    """Add a manual transaction"""
+    try:
+        date_str = request.form.get('date')
+        description = request.form.get('description')
+        amount_str = request.form.get('amount')
+        transaction_type = request.form.get('type')
+        category_id = request.form.get('category_id')
+        
+        # Validation
+        if not all([date_str, description, amount_str, transaction_type]):
+            flash('Todos os campos obrigatórios devem ser preenchidos.', 'error')
+            return redirect(url_for('dashboard'))
+        
+        # Parse date
+        transaction_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Parse amount
+        amount = float(amount_str)
+        
+        # For expenses, make amount negative
+        if transaction_type == 'despesa' and amount > 0:
+            amount = -amount
+        # For transfers/investments going out, make amount negative
+        elif transaction_type == 'transferencia' and amount > 0:
+            amount = -amount
+        
+        # Create transaction
+        transaction = Transaction(
+            date=transaction_date,
+            description=description,
+            amount=amount,
+            type=transaction_type,
+            category_id=int(category_id) if category_id else None
+        )
+        
+        db.session.add(transaction)
+        db.session.commit()
+        
+        flash('Transação adicionada com sucesso!', 'success')
+        
+    except ValueError as e:
+        flash('Erro nos dados fornecidos. Verifique os valores.', 'error')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error adding manual transaction: {e}")
+        flash('Erro ao adicionar transação.', 'error')
+    
+    return redirect(url_for('dashboard'))
 
 @app.route('/api/dashboard_data')
 def api_dashboard_data():
