@@ -94,3 +94,4 @@ Preferred communication style: Simple, everyday language.
 
 Changelog:
 - June 18, 2025. Initial setup
+- June 18, 2025. Updated CSV import to handle specific bank statement format with header rows, proper encoding detection, and improved transaction classification patterns

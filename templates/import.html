@@ -24,11 +24,12 @@
                 <h3 class="text-sm font-medium text-blue-800">Instruções para Importação</h3>
                 <div class="mt-2 text-sm text-blue-700">
                     <ul class="list-disc pl-5 space-y-1">
-                        <li>O arquivo deve estar no formato CSV com delimitador ponto e vírgula (;)</li>
-                        <li>Deve conter as colunas: Data, Histórico e Valor (R$)</li>
-                        <li>O sistema detectará automaticamente transações duplicadas</li>
-                        <li>Transações serão classificadas automaticamente como receita, despesa ou transferência</li>
-                        <li>Investimentos (CDB, ações) serão identificados como transferências</li>
+                        <li>O arquivo deve estar no formato de extrato bancário CSV com delimitador ponto e vírgula (;)</li>
+                        <li>Deve conter as colunas: Data Lançamento, Histórico, Descrição e Valor</li>
+                        <li>O sistema ignora linhas de cabeçalho e identifica automaticamente as colunas de dados</li>
+                        <li>Transações duplicadas são detectadas e ignoradas automaticamente</li>
+                        <li>PIX recebido, dividendos e juros são classificados como receita</li>
+                        <li>Aplicações e resgates de CDB são identificados como transferências de investimento</li>
                     </ul>
                 </div>
             </div>
@@ -78,18 +79,23 @@
     <!-- CSV Format Example -->
     <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Exemplo de Formato CSV</h3>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Exemplo de Formato CSV do Extrato Bancário</h3>
             <div class="bg-gray-50 rounded-lg p-4">
-                <pre class="text-sm text-gray-800 overflow-x-auto">Data;Histórico;Valor (R$)
-01/01/2024;SALARIO EMPRESA XYZ;5000,00
-02/01/2024;SUPERMERCADO ABC;-150,30
-03/01/2024;APLICACAO CDB;-1000,00
-04/01/2024;PIX RECEBIDO;200,00
-05/01/2024;COMPRA AÇÕES;-500,00</pre>
+                <pre class="text-sm text-gray-800 overflow-x-auto"> Extrato Conta Corrente 
+Conta ;29935733
+Período ;19/05/2025 a 18/06/2025
+Saldo ;1.603,52
+
+Data Lançamento;Histórico;Descrição;Valor;Saldo
+18/06/2025;Pix recebido;Jessica Morini Delfino;1.480,00;1.603,52
+17/06/2025;Resgate;Cdb Porquinho Banco Inter Sa;200,00;123,52
+17/06/2025;Pix enviado ;Pagsmile Intermediacao;-165,37;-76,48
+16/06/2025;Aplicação;Cdb Porquinho Banco Inter Sa;-1000,00;89,68
+15/06/2025;Pix enviado ;Supermercado ABC;-150,30;1139,98</pre>
             </div>
             <p class="mt-2 text-sm text-gray-600">
                 <i class="fas fa-lightbulb text-yellow-500 mr-1"></i>
-                <strong>Dica:</strong> O sistema identificará automaticamente padrões como "APLICACAO CDB", "COMPRA AÇÕES", "SALARIO" para classificar as transações.
+                <strong>Dica:</strong> O sistema identifica automaticamente "Pix recebido", "Resgate", "Aplicação" e outros padrões para classificar as transações. As linhas de cabeçalho são ignoradas automaticamente.
             </p>
         </div>
     </div>
