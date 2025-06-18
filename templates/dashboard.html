@@ -178,8 +178,8 @@
 // Initialize expenses chart if data exists
 {% if expenses_by_category %}
 const expensesData = {
-    labels: {{ [item[0] for item in expenses_by_category] | tojson }},
-    data: {{ [item[1]|abs for item in expenses_by_category] | tojson }}
+    labels: {{ expenses_by_category | map('first') | list | tojson }},
+    data: {{ expenses_by_category | map('last') | map('abs') | list | tojson }}
 };
 
 const ctx = document.getElementById('expensesChart');
