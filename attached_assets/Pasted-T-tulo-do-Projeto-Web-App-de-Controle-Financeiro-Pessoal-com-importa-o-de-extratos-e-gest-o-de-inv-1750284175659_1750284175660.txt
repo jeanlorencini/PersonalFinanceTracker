@@ -1,0 +1,112 @@
+Título do Projeto:
+Web App de Controle Financeiro Pessoal com importação de extratos e gestão de investimentos.
+
+Resumo:
+Crie um aplicativo web completo para controle financeiro pessoal. O backend deve ser em Python utilizando o framework Flask. O frontend deve ser moderno e focado na experiência do usuário, utilizando HTML, Tailwind CSS e JavaScript. O objetivo principal do app é permitir que o usuário importe seu extrato bancário em formato CSV, categorize suas despesas e receitas, e gerencie transferências para investimentos (Ações, CDB), visualizando relatórios claros sobre sua saúde financeira.
+
+Tecnologias:
+Backend: Python 3 com Flask.
+
+Banco de Dados: SQLite para simplicidade e portabilidade.
+
+Frontend: HTML5, Tailwind CSS, JavaScript (vanilla).
+
+Bibliotecas Python: pandas para ler e processar os arquivos CSV, SQLAlchemy para interagir com o banco de dados.
+
+Bibliotecas JavaScript: Chart.js para criar gráficos dinâmicos no dashboard.
+
+Funcionalidades Detalhadas:
+1. Importação de Extrato Bancário (CSV)
+Interface: Crie uma página com um formulário simples para upload de arquivos, aceitando apenas o formato .csv.
+
+Processamento do CSV (Considerando o Padrão do Arquivo Anexado):
+
+O backend deve receber o arquivo e usar a biblioteca pandas para lê-lo.
+
+O delimitador do arquivo CSV é o ponto e vírgula (;).
+
+As colunas relevantes a serem extraídas do arquivo são: Data, Histórico e Valor (R$). O código deve ser robusto para ignorar linhas de cabeçalho/rodapé e encontrar as colunas corretas.
+
+Lógica de Classificação Automática: Ao processar o Histórico, o sistema deve tentar pré-classificar a transação. Por exemplo, se o histórico contiver "APLICACAO CDB" ou "COMPRA AÇÕES", deve ser classificada como transferência. Se contiver "SALARIO", deve ser classificada como receita.
+
+Validação Anti-Duplicação (Regra de Negócio Crucial):
+
+Antes de salvar as transações, crie um identificador único para cada uma combinando a Data, Histórico e Valor (R$). Verifique se um identificador idêntico já existe no banco de dados para evitar a duplicação.
+
+Informe ao usuário sobre o sucesso da importação ou sobre quantas transações duplicadas foram ignoradas.
+
+2. Dashboard Principal
+Layout: A página principal do app, com uma visão geral da saúde financeira do usuário.
+
+Componentes Visuais:
+
+Cartões de Resumo: Exiba cartões com "Receita Total do Mês", "Despesa Total do Mês" e "Saldo em Conta". Estes valores não devem incluir as transferências para investimentos.
+
+Gráfico de Despesas por Categoria: Utilize Chart.js para criar um gráfico de rosca mostrando a distribuição percentual das despesas do mês por categoria.
+
+Cartão de Investimentos: Um card separado mostrando "Total Aportado em Investimentos no Mês".
+
+Lista de Transações Recentes: Mostre as últimas transações de todos os tipos.
+
+3. Categorização de Transações
+Interface Intuitiva: Na página de visualização de transações, apenas as que forem do tipo despesa e ainda não tiverem uma categoria devem ter destaque para categorização (com um menu dropdown ou botões).
+
+Funcionalidade:
+
+O menu deve conter categorias pré-definidas (ex: "Moradia", "Alimentação", "Transporte", "Lazer", "Saúde") e uma opção para "Criar Nova Categoria".
+
+Ao selecionar uma categoria, o sistema salva a escolha no banco de dados de forma assíncrona.
+
+Transações do tipo receita ou transferência não precisam de categorização de despesa.
+
+4. Visualização e Filtros de Transações
+Página Dedicada: Uma página que exiba todas as transações em uma tabela.
+
+Colunas da Tabela: Data, Histórico, Valor, Tipo (Receita/Despesa/Transferência), Categoria.
+
+Filtros Avançados:
+
+Filtrar por intervalo de datas.
+
+Filtrar por Tipo (Receita, Despesa, Transferência, Todos).
+
+Filtrar por categoria de despesa.
+
+5. Gestão de Investimentos e Transferências (Nova Funcionalidade)
+Lógica de Negócio:
+
+Aportes (Ações e CDB): Quando uma transação de saída é identificada como um investimento (ex: Histórico contém "APLICACAO CDB", "COMPRA AÇÕES"), ela deve ser registrada com o tipo transferência. Ela representa dinheiro saindo da conta corrente, mas não é um gasto, e sim uma movimentação de patrimônio.
+
+Resgates (CDB): Quando uma transação de entrada é identificada como resgate (ex: Histórico contém "RESGATE CDB"), ela também deve ser registrada como transferência. É o dinheiro voltando para a conta, não uma nova receita.
+
+Visualização: Os filtros na página de transações permitirão ao usuário visualizar apenas os aportes e resgates, para acompanhar sua movimentação de investimentos.
+
+Estrutura do Banco de Dados (SQLite) - Atualizada
+Tabela transactions:
+
+id (INTEGER, Chave Primária, Auto-incremento)
+
+date (DATE)
+
+description (TEXT)
+
+amount (REAL)
+
+type (TEXT, NOT NULL) - Valores possíveis: 'receita', 'despesa', 'transferência'.
+
+category_id (INTEGER, Chave Estrangeira para a tabela categories, pode ser NULO para receitas e transferências)
+
+unique_hash (TEXT, UNIQUE, para verificação de duplicatas)
+
+Tabela categories:
+
+id (INTEGER, Chave Primária, Auto-incremento)
+
+name (TEXT, UNIQUE)
+
+Design e Experiência do Usuário (UX)
+Utilize Tailwind CSS para um layout limpo, moderno e responsivo.
+
+Navegação simples para "Dashboard", "Transações" e "Importar".
+
+Forneça feedback visual claro para as ações do usuário.
