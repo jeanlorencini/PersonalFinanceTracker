@@ -429,7 +429,10 @@ function setQuickFilter(period) {
     document.getElementById('date_to').value = formatDate(endDate);
     
     // Submit the form
-    document.querySelector('form[action*="dashboard"]').submit();
+    const form = document.querySelector('form[action*="dashboard"]');
+    if (form) {
+        form.submit();
+    }
 }
 
 // Initialize expenses chart if data exists
