@@ -1,0 +1,26 @@
+Thank you for the recent updates. I've tested the new functionalities and have some important feedback, including a new feature request that would significantly improve the app's usability.
+
+Here are the key points:
+
+1. New Feature Request: Bulk Actions on the Transactions Page
+
+To make managing a large number of transactions more efficient, it would be extremely helpful to perform actions in bulk.
+
+Implementation Idea: Add a checkbox to each transaction row on the /transactions page, along with a "master" checkbox in the header to select all.
+Required Actions: Once multiple transactions are selected, the user should be able to apply a bulk action, such as:
+Bulk Delete: Delete all selected transactions at once (with a single confirmation).
+Bulk Categorize: Apply a single category to all selected transactions. This would be a huge time-saver.
+2. Bug Report: "Internal Server Error" on CSV Upload Persists
+
+Unfortunately, the issue with the CSV import has returned. When I try to upload my bank statement, I am still redirected to the /upload_csv URL with an "Internal Server Error" message.
+
+3. Crucial Improvement: Visual Feedback for the Import Process
+
+This is directly related to the bug above. Currently, after attempting an upload, there is no visual feedback to confirm whether the process succeeded or failed. I only know there's an error because of the error page, but I don't know if any data was partially imported.
+
+Request: After an upload attempt, the user should be redirected back to the Dashboard (or the Transactions page) and see a clear, temporary message (a "flash message") indicating the result:
+On Success: A message like "Importação concluída! 150 transações foram adicionadas com sucesso." (Import complete! 150 transactions were successfully added.)
+On Failure: A message like "Erro na importação. Verifique se o formato do arquivo está correto e tente novamente." (Import error. Please check if the file format is correct and try again.)
+This visual feedback is critical for user confidence and to know immediately if there's a problem with the file or the system.
+
+In summary, the key priorities are fixing the persistent import error, providing clear feedback for that process, and implementing bulk actions to make transaction management more efficient.

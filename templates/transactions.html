@@ -91,11 +91,36 @@
                 Transações ({{ transactions|length }} encontradas)
             </h3>
             
+            <!-- Bulk Actions Bar -->
+            <div id="bulkActionsBar" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span id="selectedCount" class="text-sm font-medium text-blue-900">0 transações selecionadas</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="openBulkCategorizeModal()" 
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-tags mr-2"></i>
+                            Categorizar Selecionadas
+                        </button>
+                        <button onclick="confirmBulkDelete()" 
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <i class="fas fa-trash mr-2"></i>
+                            Excluir Selecionadas
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {% if transactions %}
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <input type="checkbox" id="selectAll" onchange="selectAllTransactions()" 
+                                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Data
                                 </th>
@@ -119,6 +144,11 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             {% for transaction in transactions %}
                                 <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <input type="checkbox" name="transaction_ids" value="{{ transaction.id }}" 
+                                               onchange="updateBulkActionsVisibility()" 
+                                               class="transaction-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ transaction.date.strftime('%d/%m/%Y') }}
                                     </td>
@@ -273,7 +303,158 @@
     </div>
 </div>
 
+<!-- Bulk Categorize Modal -->
+<div id="bulkCategorizeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Categorizar Transações Selecionadas</h3>
+            <form id="bulkCategorizeForm" method="POST" action="{{ url_for('bulk_categorize_transactions') }}">
+                <div id="bulkSelectedTransactions"></div>
+                
+                <div class="mb-4">
+                    <label for="bulk_category_id" class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+                    <select name="category_id" id="bulk_category_id" 
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Selecione uma categoria</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="bulk_new_category" class="block text-sm font-medium text-gray-700 mb-2">Ou criar nova categoria</label>
+                    <input type="text" name="new_category" id="bulk_new_category" 
+                           placeholder="Nome da nova categoria"
+                           class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeBulkCategorizeModal()" 
+                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        Categorizar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Delete Modal -->
+<div id="bulkDeleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mt-2">Confirmar Exclusão em Massa</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    Tem certeza que deseja excluir <span id="bulkDeleteCount">0</span> transações selecionadas?
+                </p>
+                <p class="text-xs text-red-500 mt-2">
+                    Esta ação não pode ser desfeita.
+                </p>
+            </div>
+            <div class="flex justify-center space-x-4 mt-4">
+                <button onclick="closeBulkDeleteModal()" 
+                        class="px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    Cancelar
+                </button>
+                <form id="bulkDeleteForm" method="POST" action="{{ url_for('bulk_delete_transactions') }}" class="inline">
+                    <div id="bulkDeleteTransactions"></div>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                        Excluir Todas
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// Bulk actions functions
+function selectAllTransactions() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const transactionCheckboxes = document.querySelectorAll('.transaction-checkbox');
+    
+    transactionCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    
+    updateBulkActionsVisibility();
+}
+
+function updateBulkActionsVisibility() {
+    const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
+    const bulkActionsBar = document.getElementById('bulkActionsBar');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    if (selectedCheckboxes.length > 0) {
+        bulkActionsBar.classList.remove('hidden');
+        selectedCount.textContent = `${selectedCheckboxes.length} transações selecionadas`;
+    } else {
+        bulkActionsBar.classList.add('hidden');
+    }
+}
+
+function openBulkCategorizeModal() {
+    const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
+    const bulkSelectedDiv = document.getElementById('bulkSelectedTransactions');
+    
+    // Clear previous selections
+    bulkSelectedDiv.innerHTML = '';
+    
+    // Add hidden inputs for selected transaction IDs
+    selectedCheckboxes.forEach(checkbox => {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'transaction_ids';
+        hiddenInput.value = checkbox.value;
+        bulkSelectedDiv.appendChild(hiddenInput);
+    });
+    
+    document.getElementById('bulkCategorizeModal').classList.remove('hidden');
+}
+
+function closeBulkCategorizeModal() {
+    document.getElementById('bulkCategorizeModal').classList.add('hidden');
+    document.getElementById('bulk_category_id').value = '';
+    document.getElementById('bulk_new_category').value = '';
+}
+
+function confirmBulkDelete() {
+    const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
+    const bulkDeleteCount = document.getElementById('bulkDeleteCount');
+    const bulkDeleteDiv = document.getElementById('bulkDeleteTransactions');
+    
+    // Update count
+    bulkDeleteCount.textContent = selectedCheckboxes.length;
+    
+    // Clear previous selections
+    bulkDeleteDiv.innerHTML = '';
+    
+    // Add hidden inputs for selected transaction IDs
+    selectedCheckboxes.forEach(checkbox => {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'transaction_ids';
+        hiddenInput.value = checkbox.value;
+        bulkDeleteDiv.appendChild(hiddenInput);
+    });
+    
+    document.getElementById('bulkDeleteModal').classList.remove('hidden');
+}
+
+function closeBulkDeleteModal() {
+    document.getElementById('bulkDeleteModal').classList.add('hidden');
+}
+
 // Delete transaction functions
 function confirmDeleteTransaction(transactionId, description) {
     document.getElementById('deleteTransactionDescription').textContent = description;

@@ -172,12 +172,11 @@ def upload_csv():
             flash('Não foi possível processar o arquivo CSV. Verifique o formato.', 'error')
             return redirect(url_for('import_page'))
         
-        # Save transactions to database
+        # Save transactions to database with individual processing
         imported_count = 0
         duplicate_count = 0
-        batch_size = 50  # Process in smaller batches
         
-        for i, transaction_data in enumerate(transactions_data):
+        for transaction_data in transactions_data:
             try:
                 # Classify transaction type
                 transaction_type = classify_transaction_type(transaction_data['description'])
@@ -190,74 +189,33 @@ def upload_csv():
                 )
                 
                 db.session.add(transaction)
-                imported_count += 1
                 
-                # Commit in batches
-                if (i + 1) % batch_size == 0:
-                    try:
-                        db.session.commit()
-                    except IntegrityError:
-                        db.session.rollback()
-                        # Handle duplicates in batch - reprocess individually
-                        for j in range(max(0, i - batch_size + 1), i + 1):
-                            try:
-                                td = transactions_data[j]
-                                tt = classify_transaction_type(td['description'])
-                                t = Transaction(
-                                    date=td['date'],
-                                    description=td['description'],
-                                    amount=td['amount'],
-                                    type=tt
-                                )
-                                db.session.add(t)
-                                db.session.commit()
-                            except IntegrityError:
-                                db.session.rollback()
-                                duplicate_count += 1
-                                imported_count -= 1
-                    except Exception as e:
-                        db.session.rollback()
-                        app.logger.error(f"Error in batch commit: {e}")
-                        continue
-                
-            except Exception as e:
-                app.logger.error(f"Error processing transaction: {e}")
-                continue
-        
-        # Commit remaining transactions
-        try:
-            db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-            # Process remaining individually
-            remaining_start = (len(transactions_data) // batch_size) * batch_size
-            for j in range(remaining_start, len(transactions_data)):
                 try:
-                    td = transactions_data[j]
-                    tt = classify_transaction_type(td['description'])
-                    t = Transaction(
-                        date=td['date'],
-                        description=td['description'],
-                        amount=td['amount'],
-                        type=tt
-                    )
-                    db.session.add(t)
                     db.session.commit()
+                    imported_count += 1
                 except IntegrityError:
+                    # Duplicate transaction - rollback this one and continue
                     db.session.rollback()
                     duplicate_count += 1
-                    imported_count -= 1
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Error in final commit: {e}")
+                
+            except Exception as e:
+                db.session.rollback()
+                app.logger.warning(f"Skipping transaction due to error: {e}")
+                continue
         
-        # Provide feedback
+        # Provide comprehensive feedback
         if imported_count > 0:
-            flash(f'Importação concluída! {imported_count} transações importadas.', 'success')
-        if duplicate_count > 0:
-            flash(f'{duplicate_count} transações duplicadas foram ignoradas.', 'info')
+            if duplicate_count > 0:
+                flash(f'Importação concluída! {imported_count} transações foram adicionadas com sucesso. {duplicate_count} transações duplicadas foram ignoradas.', 'success')
+            else:
+                flash(f'Importação concluída! {imported_count} transações foram adicionadas com sucesso.', 'success')
+        else:
+            if duplicate_count > 0:
+                flash('Nenhuma nova transação foi importada. Todas as transações já existem no sistema.', 'warning')
+            else:
+                flash('Nenhuma transação foi processada. Verifique o formato do arquivo.', 'error')
         
-        return redirect(url_for('transactions'))
+        return redirect(url_for('dashboard'))
         
     except Exception as e:
         app.logger.error(f"CSV processing error: {e}")
@@ -371,6 +329,79 @@ def delete_transaction(transaction_id):
         db.session.rollback()
         app.logger.error(f"Error deleting transaction: {e}")
         flash('Erro ao excluir transação.', 'error')
+    
+    return redirect(url_for('transactions'))
+
+@app.route('/bulk_delete_transactions', methods=['POST'])
+def bulk_delete_transactions():
+    """Delete multiple transactions"""
+    transaction_ids = request.form.getlist('transaction_ids')
+    
+    if not transaction_ids:
+        flash('Nenhuma transação selecionada para exclusão.', 'error')
+        return redirect(url_for('transactions'))
+    
+    try:
+        # Convert to integers and delete transactions
+        ids = [int(tid) for tid in transaction_ids]
+        deleted_count = Transaction.query.filter(Transaction.id.in_(ids)).delete()
+        
+        db.session.commit()
+        
+        flash(f'{deleted_count} transações foram excluídas com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in bulk delete: {e}")
+        flash('Erro ao excluir transações.', 'error')
+    
+    return redirect(url_for('transactions'))
+
+@app.route('/bulk_categorize_transactions', methods=['POST'])
+def bulk_categorize_transactions():
+    """Categorize multiple transactions"""
+    transaction_ids = request.form.getlist('transaction_ids')
+    category_id = request.form.get('category_id')
+    new_category = request.form.get('new_category')
+    
+    if not transaction_ids:
+        flash('Nenhuma transação selecionada para categorização.', 'error')
+        return redirect(url_for('transactions'))
+    
+    try:
+        # Handle new category creation
+        if new_category:
+            existing_category = Category.query.filter_by(name=new_category).first()
+            if existing_category:
+                category_id = existing_category.id
+            else:
+                new_cat = Category(name=new_category)
+                db.session.add(new_cat)
+                db.session.flush()
+                category_id = new_cat.id
+        
+        if not category_id:
+            flash('Categoria não selecionada.', 'error')
+            return redirect(url_for('transactions'))
+        
+        # Update transactions - only expenses and income, not transfers
+        ids = [int(tid) for tid in transaction_ids]
+        updated_count = Transaction.query.filter(
+            Transaction.id.in_(ids),
+            Transaction.type.in_(['despesa', 'receita'])
+        ).update({Transaction.category_id: category_id})
+        
+        db.session.commit()
+        
+        if updated_count > 0:
+            flash(f'{updated_count} transações foram categorizadas com sucesso!', 'success')
+        else:
+            flash('Nenhuma transação foi categorizada. Apenas receitas e despesas podem ser categorizadas.', 'warning')
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error in bulk categorize: {e}")
+        flash('Erro ao categorizar transações.', 'error')
     
     return redirect(url_for('transactions'))
 
