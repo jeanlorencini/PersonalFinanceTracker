@@ -383,11 +383,12 @@ function selectAllTransactions() {
     const selectAllCheckbox = document.getElementById('selectAll');
     const transactionCheckboxes = document.querySelectorAll('.transaction-checkbox');
     
-    transactionCheckboxes.forEach(checkbox => {
-        checkbox.checked = selectAllCheckbox.checked;
-    });
-    
-    updateBulkActionsVisibility();
+    if (selectAllCheckbox && transactionCheckboxes.length > 0) {
+        transactionCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAllCheckbox.checked;
+        });
+        updateBulkActionsVisibility();
+    }
 }
 
 function updateBulkActionsVisibility() {
@@ -396,10 +397,10 @@ function updateBulkActionsVisibility() {
     const selectedCount = document.getElementById('selectedCount');
     
     if (selectedCheckboxes.length > 0) {
-        bulkActionsBar.classList.remove('hidden');
-        selectedCount.textContent = `${selectedCheckboxes.length} transações selecionadas`;
+        if (bulkActionsBar) bulkActionsBar.classList.remove('hidden');
+        if (selectedCount) selectedCount.textContent = `${selectedCheckboxes.length} transações selecionadas`;
     } else {
-        bulkActionsBar.classList.add('hidden');
+        if (bulkActionsBar) bulkActionsBar.classList.add('hidden');
     }
 }
 
@@ -407,8 +408,13 @@ function openBulkCategorizeModal() {
     const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
     const bulkSelectedDiv = document.getElementById('bulkSelectedTransactions');
     
+    if (selectedCheckboxes.length === 0) {
+        alert('Selecione pelo menos uma transação para categorizar.');
+        return;
+    }
+    
     // Clear previous selections
-    bulkSelectedDiv.innerHTML = '';
+    if (bulkSelectedDiv) bulkSelectedDiv.innerHTML = '';
     
     // Add hidden inputs for selected transaction IDs
     selectedCheckboxes.forEach(checkbox => {
@@ -416,28 +422,39 @@ function openBulkCategorizeModal() {
         hiddenInput.type = 'hidden';
         hiddenInput.name = 'transaction_ids';
         hiddenInput.value = checkbox.value;
-        bulkSelectedDiv.appendChild(hiddenInput);
+        if (bulkSelectedDiv) bulkSelectedDiv.appendChild(hiddenInput);
     });
     
-    document.getElementById('bulkCategorizeModal').classList.remove('hidden');
+    const modal = document.getElementById('bulkCategorizeModal');
+    if (modal) modal.classList.remove('hidden');
 }
 
 function closeBulkCategorizeModal() {
-    document.getElementById('bulkCategorizeModal').classList.add('hidden');
-    document.getElementById('bulk_category_id').value = '';
-    document.getElementById('bulk_new_category').value = '';
+    const modal = document.getElementById('bulkCategorizeModal');
+    if (modal) modal.classList.add('hidden');
+    
+    const categorySelect = document.getElementById('bulk_category_id');
+    const newCategoryInput = document.getElementById('bulk_new_category');
+    if (categorySelect) categorySelect.value = '';
+    if (newCategoryInput) newCategoryInput.value = '';
 }
 
 function confirmBulkDelete() {
     const selectedCheckboxes = document.querySelectorAll('.transaction-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        alert('Selecione pelo menos uma transação para excluir.');
+        return;
+    }
+    
     const bulkDeleteCount = document.getElementById('bulkDeleteCount');
     const bulkDeleteDiv = document.getElementById('bulkDeleteTransactions');
     
     // Update count
-    bulkDeleteCount.textContent = selectedCheckboxes.length;
+    if (bulkDeleteCount) bulkDeleteCount.textContent = selectedCheckboxes.length;
     
     // Clear previous selections
-    bulkDeleteDiv.innerHTML = '';
+    if (bulkDeleteDiv) bulkDeleteDiv.innerHTML = '';
     
     // Add hidden inputs for selected transaction IDs
     selectedCheckboxes.forEach(checkbox => {
@@ -445,14 +462,16 @@ function confirmBulkDelete() {
         hiddenInput.type = 'hidden';
         hiddenInput.name = 'transaction_ids';
         hiddenInput.value = checkbox.value;
-        bulkDeleteDiv.appendChild(hiddenInput);
+        if (bulkDeleteDiv) bulkDeleteDiv.appendChild(hiddenInput);
     });
     
-    document.getElementById('bulkDeleteModal').classList.remove('hidden');
+    const modal = document.getElementById('bulkDeleteModal');
+    if (modal) modal.classList.remove('hidden');
 }
 
 function closeBulkDeleteModal() {
-    document.getElementById('bulkDeleteModal').classList.add('hidden');
+    const modal = document.getElementById('bulkDeleteModal');
+    if (modal) modal.classList.add('hidden');
 }
 
 // Delete transaction functions

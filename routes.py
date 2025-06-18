@@ -172,14 +172,26 @@ def upload_csv():
             flash('Não foi possível processar o arquivo CSV. Verifique o formato.', 'error')
             return redirect(url_for('import_page'))
         
-        # Save transactions to database with individual processing
+        # Save transactions to database with proper session handling
         imported_count = 0
         duplicate_count = 0
         
         for transaction_data in transactions_data:
+            # Create a new session for each transaction to avoid connection issues
             try:
                 # Classify transaction type
                 transaction_type = classify_transaction_type(transaction_data['description'])
+                
+                # Check if transaction already exists
+                existing = Transaction.query.filter_by(
+                    date=transaction_data['date'],
+                    description=transaction_data['description'],
+                    amount=transaction_data['amount']
+                ).first()
+                
+                if existing:
+                    duplicate_count += 1
+                    continue
                 
                 transaction = Transaction(
                     date=transaction_data['date'],
@@ -189,19 +201,21 @@ def upload_csv():
                 )
                 
                 db.session.add(transaction)
-                
-                try:
-                    db.session.commit()
-                    imported_count += 1
-                except IntegrityError:
-                    # Duplicate transaction - rollback this one and continue
-                    db.session.rollback()
-                    duplicate_count += 1
+                db.session.flush()  # Flush without committing
+                imported_count += 1
                 
             except Exception as e:
                 db.session.rollback()
                 app.logger.warning(f"Skipping transaction due to error: {e}")
                 continue
+        
+        # Commit all transactions at once
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error committing transactions: {e}")
+            imported_count = 0
         
         # Provide comprehensive feedback
         if imported_count > 0:
