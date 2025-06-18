@@ -149,7 +149,7 @@ def upload_csv():
                 )
                 
                 db.session.add(transaction)
-                db.session.commit()
+                db.session.flush()  # Flush to detect duplicates without committing
                 imported_count += 1
                 
             except IntegrityError:
@@ -161,6 +161,15 @@ def upload_csv():
                 db.session.rollback()
                 app.logger.error(f"Error importing transaction: {e}")
                 continue
+        
+        # Commit all transactions at once
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error committing transactions: {e}")
+            flash('Erro ao salvar as transações no banco de dados.', 'error')
+            return redirect(url_for('import_page'))
         
         # Provide feedback
         if imported_count > 0:

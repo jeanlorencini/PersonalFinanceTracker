@@ -1,0 +1,34 @@
+Relatório de Erros e Sugestões de Melhoria
+1. Erros no Processo de Importação de Extrato (.csv)
+Ao tentar importar um extrato bancário em formato de planilha, a aplicação apresentou os seguintes erros:
+
+Erro 1: Fui redirecionado para a URL /upload_csv, que exibiu a mensagem: "Internal Server Error".
+Erro 2: Após recarregar a página, a mensagem foi alterada para: "Method Not Allowed. The method is not allowed for the requested URL.".
+Apesar das mensagens de erro, ao retornar ao "Dashboard", verifiquei que os dados da planilha foram carregados com sucesso.
+
+2. Formato de Moeda Incorreto
+O sistema está exibindo valores em Real (BRL) com a formatação incorreta. O separador de milhar está ausente e o separador decimal está incorreto (ponto em vez de vírgula).
+
+Formato Atual: +R$ 1480.00
+Formato Correto: +R$ 1.480,00
+3. Falha na Atribuição de Categoria
+Na tela de transações (/transactions), algumas movimentações estão rotuladas com a categoria "N/A" e não permitem a seleção ou alteração manual para uma categoria correta.
+
+Sugestões de Melhoria
+1. Otimização da Categorização Automática
+A funcionalidade de classificação automática de categorias poderia ser mais eficiente. Sugiro que o sistema utilize o histórico de transações e as "Descrições" do arquivo .csv para aprender os padrões de gastos, visto que minhas despesas mensais são recorrentes e seguem padrões similares.
+
+2. Adição de Transação Manual no Dashboard
+Recomendo a inclusão de um botão no "Dashboard" que permita ao usuário cadastrar uma transação manualmente. Este formulário deve ser projetado com foco na experiência do usuário, oferecendo uma interface moderna, fácil de usar e que torne o processo de registro rápido e eficiente.
+
+3. Implementação de Filtros no Dashboard
+Para uma análise mais detalhada e ágil, sugiro adicionar as seguintes opções de filtro no "Dashboard":
+
+Filtros Detalhados:
+
+Filtrar por períodos (datas específicas de início e fim).
+Filtrar por categorias específicas.
+Filtrar por tipo de transação: despesas ou receitas.
+Filtros Rápidos (Sugestões):
+
+Botões como "Últimos 30 dias" ou "Este Mês" que preencham automaticamente o filtro de data. Por exemplo, um botão "1 Mês" que ajuste o período do mesmo dia do mês anterior até a data atual.
